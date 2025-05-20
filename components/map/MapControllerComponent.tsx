@@ -1,43 +1,33 @@
 'use client';
 
 import { useEffect } from 'react';
-import dynamic from 'next/dynamic';
 
-interface MapControllerProps {
-  center: [number, number];
-  zoom: number;
-}
+// Create a component that uses the useMap hook internally
+// This pattern ensures the hook is only used during client-side rendering
+const MapControllerComponent = (props: { center: [number, number]; zoom: number }) => {
+  // Only render the actual controller on the client side
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  // Dynamically render MapController that uses useMap
+  // This ensures useMap is only called on the client side
+  return <ClientSideMapController center={props.center} zoom={props.zoom} />;
+};
 
-// Component to control the map view
-const MapControllerComponent = ({ center, zoom }: MapControllerProps) => {
-  // We can't use useMap directly at the module level with Next.js
-  // because it's not available during server-side rendering
+// This component will only be rendered on the client side
+function ClientSideMapController({ center, zoom }: { center: [number, number]; zoom: number }) {
+  // Import useMap directly since we're guaranteed to be on the client side
+  const { useMap } = require('react-leaflet');
+  const map = useMap();
   
   useEffect(() => {
-    // Only run on client side
-    if (typeof window === 'undefined') return;
-    
-    // Import react-leaflet and get the map
-    const getMap = async () => {
-      try {
-        // Dynamically import useMap
-        const { useMap } = await import('react-leaflet');
-        
-        // Get the map instance
-        const map = useMap();
-        
-        if (map) {
-          map.setView(center, zoom);
-        }
-      } catch (error) {
-        console.error('Error setting map view:', error);
-      }
-    };
-    
-    getMap();
-  }, [center, zoom]);
+    if (map) {
+      map.setView(center, zoom);
+    }
+  }, [center, zoom, map]);
   
   return null;
-};
+}
 
 export default MapControllerComponent; 
