@@ -1,9 +1,44 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
+
+// Dynamically import leaflet with SSR disabled
+const L = dynamic(() => import('leaflet').then(mod => mod.default), {
+  ssr: false
+});
+
+// Dynamically import react-leaflet components with no SSR
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
+
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+);
+
+const Polyline = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Polyline),
+  { ssr: false }
+);
+
+const useMap = dynamic(
+  () => import('react-leaflet').then((mod) => mod.useMap),
+  { ssr: false }
+);
 
 // Define our facility and route types
 interface Facility {
@@ -150,6 +185,8 @@ const ROUTES: Route[] = [
 
 // Custom marker icons for cities and facilities
 const createIcon = (iconUrl: string, iconSize: [number, number] = [32, 32]) => {
+  if (typeof window === 'undefined' || !L) return null;
+  
   return new L.Icon({
     iconUrl,
     iconSize,
@@ -166,6 +203,9 @@ const AnimatedVehicle = ({ route, speed = 5000 }: { route: Route; speed?: number
   const startTimeRef = useRef<number | null>(null);
   
   useEffect(() => {
+    // Skip animation on server side
+    if (typeof window === 'undefined') return;
+    
     const animate = (timestamp: number) => {
       if (!startTimeRef.current) startTimeRef.current = timestamp;
       const elapsed = timestamp - startTimeRef.current;
@@ -205,6 +245,9 @@ const AnimatedVehicle = ({ route, speed = 5000 }: { route: Route; speed?: number
                       route.efficiency > 60 ? '#f59e0b' : 
                       '#ef4444';
   
+  // Create DivIcon only on client-side
+  if (typeof window === 'undefined' || !L) return null;
+  
   const vehicleIcon = new L.DivIcon({
     className: 'custom-vehicle-icon',
     html: `<div style="background-color: white; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
@@ -228,7 +271,9 @@ const getEfficiencyColor = (efficiency: number) => {
 const MapViewSetter = ({ center, zoom }: { center: [number, number]; zoom: number }) => {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
+    if (map) {
+      map.setView(center, zoom);
+    }
   }, [center, zoom, map]);
   return null;
 };
@@ -242,236 +287,175 @@ const MoroccoMap = ({ height = "600px" }: MoroccoMapProps) => {
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([35.26, -5.0]);
   const [mapZoom, setMapZoom] = useState(8);
+  const [isClient, setIsClient] = useState(false);
   
   // Initialize leaflet icons and ensure they work in Next.js
   useEffect(() => {
-    // Fix Leaflet icons in Next.js
-    if (typeof window !== 'undefined') {
-      // @ts-ignore - _getIconUrl is a private property that we need to access
-      delete L.Icon.Default.prototype._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      });
-    }
+    setIsClient(true);
   }, []);
   
-  // Custom icons for different facility types
-  const facilityIcons = {
-    port: createIcon('https://cdn-icons-png.flaticon.com/512/1146/1146217.png', [28, 28]),
-    distribution: createIcon('https://cdn-icons-png.flaticon.com/512/2991/2991441.png', [28, 28]),
-    warehouse: createIcon('https://cdn-icons-png.flaticon.com/512/3028/3028358.png', [28, 28]),
-    logistics: createIcon('https://cdn-icons-png.flaticon.com/512/2721/2721294.png', [28, 28]),
-    depot: createIcon('https://cdn-icons-png.flaticon.com/512/4320/4320350.png', [28, 28]),
-    'free-zone': createIcon('https://cdn-icons-png.flaticon.com/512/4310/4310852.png', [28, 28])
-  };
-  
-  // City icon
-  const cityIcon = createIcon('https://cdn-icons-png.flaticon.com/512/1719/1719666.png', [26, 26]);
-  
-  // Handle facility click
   const handleFacilityClick = (facility: Facility) => {
     setSelectedFacility(facility);
     setMapCenter(facility.position);
-    setMapZoom(10);
+    setMapZoom(11);
   };
   
-  // Reset view to show all of northern Morocco
   const resetView = () => {
+    setSelectedFacility(null);
     setMapCenter([35.26, -5.0]);
     setMapZoom(8);
-    setSelectedFacility(null);
   };
   
+  // If server-side rendering, show a placeholder
+  if (!isClient) {
+    return (
+      <div 
+        className="relative bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center"
+        style={{ height }}
+      >
+        <div className="text-center p-4">
+          <div className="w-12 h-12 border-t-4 border-[#683cec] rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-[#556068]">Loading map...</p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="relative" style={{ height, width: '100%' }}>
+    <div className="relative rounded-lg overflow-hidden" style={{ height }}>
       <MapContainer 
         center={mapCenter} 
         zoom={mapZoom} 
-        style={{ height: '100%', width: '100%', borderRadius: '0.75rem' }}
-        attributionControl={false}
+        style={{ height: '100%', width: '100%' }}
+        zoomControl={false}
       >
         <MapViewSetter center={mapCenter} zoom={mapZoom} />
         
-        {/* Satellite base layer */}
         <TileLayer
-          url="https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}"
-          subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-          maxZoom={20}
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {/* Routes with efficiency colors */}
-        {ROUTES.map(route => (
-          <div key={route.id}>
-            <Polyline 
-              positions={route.positions} 
-              pathOptions={{ 
-                color: getEfficiencyColor(route.efficiency),
-                weight: 4,
-                opacity: 0.7,
-                dashArray: route.efficiency < 70 ? "5, 10" : undefined
-              }} 
+        {/* Facilities */}
+        {FACILITIES.map(facility => {
+          const isSelected = selectedFacility && selectedFacility.id === facility.id;
+          let icon;
+          
+          // Only create icon on client-side
+          if (typeof window !== 'undefined' && L) {
+            icon = createIcon(
+              `/images/map/${facility.type}-icon.png`, 
+              isSelected ? [40, 40] : [32, 32]
+            );
+          }
+          
+          return (
+            <Marker 
+              key={facility.id}
+              position={facility.position}
+              icon={icon || undefined}
+              eventHandlers={{
+                click: () => handleFacilityClick(facility)
+              }}
             >
               <Popup>
-                <div className="text-sm">
-                  <div className="font-medium text-[#111827] mb-1">
-                    {route.from.charAt(0).toUpperCase() + route.from.slice(1)} to {route.to.charAt(0).toUpperCase() + route.to.slice(1)}
-                  </div>
-                  <div className="text-[#556068] grid grid-cols-2 gap-x-2 gap-y-1">
-                    <span>Distance:</span>
-                    <span className="font-medium">{route.distance} km</span>
-                    <span>Efficiency:</span>
-                    <span className="font-medium">{route.efficiency}%</span>
-                    <span>Vehicles:</span>
-                    <span className="font-medium">{route.vehicles}</span>
-                    <span>Emissions:</span>
-                    <span className="font-medium">{route.carbonEmission} tons/mo</span>
+                <div className="p-1">
+                  <h3 className="font-medium text-base">{facility.name}</h3>
+                  <p className="text-sm text-gray-600">{facility.type.charAt(0).toUpperCase() + facility.type.slice(1)}</p>
+                  <div className="text-xs mt-2">
+                    <div className="flex justify-between">
+                      <span>Capacity:</span>
+                      <span className="font-medium">{facility.capacity}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Throughput:</span>
+                      <span className="font-medium">{facility.throughput}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Efficiency:</span>
+                      <span className={`font-medium ${facility.efficiency >= 80 ? 'text-green-600' : facility.efficiency >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {facility.efficiency}%
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Popup>
-            </Polyline>
-            
-            {/* Animated vehicles on routes */}
-            <AnimatedVehicle route={route} speed={route.distance * 100} />
-          </div>
-        ))}
+            </Marker>
+          );
+        })}
         
-        {/* City markers */}
-        {Object.entries(CITY_COORDINATES).map(([city, position]) => (
-          <Marker 
-            key={city} 
-            position={position} 
-            icon={cityIcon}
-          >
-            <Popup>
-              <div className="font-medium text-[#111827]">
-                {city.charAt(0).toUpperCase() + city.slice(1)}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-        
-        {/* Facility markers */}
-        {FACILITIES.map(facility => (
-          <Marker 
-            key={facility.id} 
-            position={facility.position} 
-            icon={facilityIcons[facility.type as keyof typeof facilityIcons] || facilityIcons.warehouse}
-            eventHandlers={{
-              click: () => handleFacilityClick(facility)
-            }}
-          >
-            <Popup>
-              <div className="text-sm">
-                <div className="font-medium text-[#111827] mb-1">{facility.name}</div>
-                <div className="text-[#556068] grid grid-cols-2 gap-x-2 gap-y-1">
-                  <span>Type:</span>
-                  <span className="font-medium capitalize">{facility.type}</span>
-                  <span>Capacity:</span>
-                  <span className="font-medium">{facility.capacity}</span>
-                  <span>Throughput:</span>
-                  <span className="font-medium">{facility.throughput}</span>
-                  <span>Efficiency:</span>
-                  <span className="font-medium">{facility.efficiency}%</span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {/* Routes */}
+        {ROUTES.map(route => {
+          const color = getEfficiencyColor(route.efficiency);
+          
+          return (
+            <div key={route.id}>
+              <Polyline
+                positions={route.positions}
+                color={color}
+                weight={3}
+              >
+                <Popup>
+                  <div className="p-1">
+                    <h3 className="font-medium text-base">{route.from.charAt(0).toUpperCase() + route.from.slice(1)} → {route.to.charAt(0).toUpperCase() + route.to.slice(1)}</h3>
+                    <div className="text-xs mt-2">
+                      <div className="flex justify-between">
+                        <span>Distance:</span>
+                        <span className="font-medium">{route.distance} km</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Vehicles:</span>
+                        <span className="font-medium">{route.vehicles} trucks</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>CO₂:</span>
+                        <span className="font-medium">{route.carbonEmission} tons/week</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Efficiency:</span>
+                        <span className={`font-medium ${route.efficiency >= 80 ? 'text-green-600' : route.efficiency >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          {route.efficiency}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Popup>
+              </Polyline>
+              
+              {/* Animated vehicle on the route */}
+              <AnimatedVehicle route={route} speed={10000 - (route.efficiency * 50)} />
+            </div>
+          );
+        })}
       </MapContainer>
       
-      {/* Reset view button */}
-      <button 
-        onClick={resetView}
-        className="absolute bottom-4 right-4 z-[1000] bg-white rounded-lg shadow-md p-2 hover:bg-gray-50 text-[#683cec]"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clipRule="evenodd" />
-        </svg>
-      </button>
-      
-      {/* Facility details panel (when a facility is selected) */}
-      {selectedFacility && (
-        <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-md p-4 max-w-xs">
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="text-md font-display text-[#111827]">{selectedFacility.name}</h3>
-            <button 
-              onClick={() => setSelectedFacility(null)} 
-              className="text-[#556068] hover:text-[#111827]"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="space-y-3">
-            <div>
-              <div className="text-xs text-[#556068] mb-1">Facility Type</div>
-              <div className="text-sm font-medium text-[#111827] capitalize">{selectedFacility.type}</div>
-            </div>
-            
-            <div>
-              <div className="text-xs text-[#556068] mb-1">Capacity</div>
-              <div className="text-sm font-medium text-[#111827]">{selectedFacility.capacity}</div>
-            </div>
-            
-            <div>
-              <div className="text-xs text-[#556068] mb-1">Throughput</div>
-              <div className="text-sm font-medium text-[#111827]">{selectedFacility.throughput}</div>
-            </div>
-            
-            <div>
-              <div className="text-xs text-[#556068] mb-1">Efficiency Rating</div>
-              <div className="flex items-center">
-                <div className="w-full bg-gray-200 rounded-full h-2 mr-2">
-                  <div 
-                    className={`h-2 rounded-full ${
-                      selectedFacility.efficiency >= 80 ? 'bg-green-500' : 
-                      selectedFacility.efficiency >= 60 ? 'bg-yellow-500' : 
-                      'bg-red-500'
-                    }`} 
-                    style={{ width: `${selectedFacility.efficiency}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-medium text-[#111827]">{selectedFacility.efficiency}%</span>
-              </div>
-            </div>
-            
-            <div className="pt-2">
-              <button 
-                className="w-full bg-[#683cec] text-white rounded-lg py-2 text-sm font-medium hover:bg-[#5429e0]"
-              >
-                View Detailed Analytics
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Live indicator */}
-      <div className="absolute top-4 right-4 z-[1000] bg-white bg-opacity-90 rounded-full py-1 px-3 flex items-center shadow-sm">
-        <div className="h-2 w-2 rounded-full bg-red-500 mr-2 relative">
-          <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75"></div>
-        </div>
-        <span className="text-xs font-medium text-[#111827]">LIVE</span>
+      {/* Map controls */}
+      <div className="absolute top-3 right-3 z-[1000]">
+        <button 
+          onClick={resetView}
+          className="bg-white w-10 h-10 rounded-lg shadow-md flex items-center justify-center hover:bg-gray-50"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#556068]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        </button>
       </div>
       
-      {/* Map legend */}
-      <div className="absolute bottom-4 left-4 z-[1000] bg-white bg-opacity-90 rounded-lg p-2 shadow-sm text-xs">
-        <div className="flex flex-col space-y-1">
+      {/* Legend */}
+      <div className="absolute bottom-3 right-3 bg-white rounded-lg shadow-md p-3 z-[1000]">
+        <h4 className="text-sm font-medium text-[#111827] mb-2">Legend</h4>
+        <div className="space-y-2 text-xs">
           <div className="flex items-center">
-            <div className="h-3 w-3 rounded-full bg-green-500 mr-1"></div>
-            <span className="text-[#111827]">Optimized Routes ({'>'}80%)</span>
+            <div className="w-3 h-3 rounded-full bg-[#22c55e] mr-2"></div>
+            <span>High Efficiency (80%+)</span>
           </div>
           <div className="flex items-center">
-            <div className="h-3 w-3 rounded-full bg-yellow-500 mr-1"></div>
-            <span className="text-[#111827]">Standard Routes (60-80%)</span>
+            <div className="w-3 h-3 rounded-full bg-[#f59e0b] mr-2"></div>
+            <span>Medium Efficiency (60-79%)</span>
           </div>
           <div className="flex items-center">
-            <div className="h-3 w-3 rounded-full bg-red-500 mr-1"></div>
-            <span className="text-[#111827]">Inefficient Routes ({'<'}60%)</span>
+            <div className="w-3 h-3 rounded-full bg-[#ef4444] mr-2"></div>
+            <span>Low Efficiency (&lt;60%)</span>
           </div>
         </div>
       </div>

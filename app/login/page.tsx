@@ -107,7 +107,10 @@ export default function Login() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-[#683cec] hover:text-[#5429e0]">
+                <a href="#" className="font-medium text-[#683cec] hover:text-[#5429e0]" onClick={(e) => {
+                  e.preventDefault();
+                  router.push('/forgot-password');
+                }}>
                   Forgot your password?
                 </a>
               </div>
@@ -134,7 +137,10 @@ export default function Login() {
         <div className="mt-6 text-center">
           <p className="text-sm text-[#556068]">
             Don't have an account?{' '}
-            <a href="#" className="font-medium text-[#683cec] hover:text-[#5429e0]">
+            <a href="#" className="font-medium text-[#683cec] hover:text-[#5429e0]" onClick={(e) => {
+              e.preventDefault();
+              router.push('/signup');
+            }}>
               Request access
             </a>
           </p>
