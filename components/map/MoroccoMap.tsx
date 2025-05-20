@@ -4,10 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 
-// Dynamically import leaflet with SSR disabled
-const L = dynamic(() => import('leaflet').then(mod => mod.default), {
-  ssr: false
-});
+// Import Leaflet types only for type checking
+import type { Icon, DivIcon } from 'leaflet';
 
 // Dynamically import react-leaflet components with no SSR
 const MapContainer = dynamic(
@@ -32,11 +30,6 @@ const Popup = dynamic(
 
 const Polyline = dynamic(
   () => import('react-leaflet').then((mod) => mod.Polyline),
-  { ssr: false }
-);
-
-const useMap = dynamic(
-  () => import('react-leaflet').then((mod) => mod.useMap),
   { ssr: false }
 );
 
@@ -183,17 +176,11 @@ const ROUTES: Route[] = [
   }
 ];
 
-// Custom marker icons for cities and facilities
-const createIcon = (iconUrl: string, iconSize: [number, number] = [32, 32]) => {
-  if (typeof window === 'undefined' || !L) return null;
-  
-  return new L.Icon({
-    iconUrl,
-    iconSize,
-    iconAnchor: [iconSize[0] / 2, iconSize[1] / 2],
-    popupAnchor: [0, -iconSize[1] / 2]
-  });
-};
+// Dynamically import the useMap component with no SSR
+const MapControllerComponent = dynamic(
+  () => import('./MapControllerComponent').then(mod => mod.default),
+  { ssr: false }
+);
 
 // Animation component to move vehicles along routes
 const AnimatedVehicle = ({ route, speed = 5000 }: { route: Route; speed?: number }) => {
@@ -201,6 +188,7 @@ const AnimatedVehicle = ({ route, speed = 5000 }: { route: Route; speed?: number
   const [progress, setProgress] = useState(0);
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const [vehicleIcon, setVehicleIcon] = useState<any>(null);
   
   useEffect(() => {
     // Skip animation on server side
@@ -240,22 +228,40 @@ const AnimatedVehicle = ({ route, speed = 5000 }: { route: Route; speed?: number
     };
   }, [route.positions, speed]);
   
-  // Vehicle icon based on efficiency
+  // Vehicle color based on efficiency
   const vehicleColor = route.efficiency > 80 ? '#32C8CD' : 
                       route.efficiency > 60 ? '#f59e0b' : 
                       '#ef4444';
   
   // Create DivIcon only on client-side
-  if (typeof window === 'undefined' || !L) return null;
+  useEffect(() => {
+    const initIcon = async () => {
+      if (typeof window === 'undefined') return;
+      
+      try {
+        // Dynamically import Leaflet
+        const L = await import('leaflet');
+        
+        // Create the vehicle icon
+        const newIcon = L.divIcon({
+          className: 'custom-vehicle-icon',
+          html: `<div style="background-color: white; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                  <div style="background-color: ${vehicleColor}; width: 10px; height: 10px; border-radius: 50%;"></div>
+                </div>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+        
+        setVehicleIcon(newIcon);
+      } catch (error) {
+        console.error('Error creating vehicle icon:', error);
+      }
+    };
+    
+    initIcon();
+  }, [vehicleColor]);
   
-  const vehicleIcon = new L.DivIcon({
-    className: 'custom-vehicle-icon',
-    html: `<div style="background-color: white; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-             <div style="background-color: ${vehicleColor}; width: 10px; height: 10px; border-radius: 50%;"></div>
-           </div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
-  });
+  if (!vehicleIcon) return null;
   
   return <Marker position={position} icon={vehicleIcon} />;
 };
@@ -265,17 +271,6 @@ const getEfficiencyColor = (efficiency: number) => {
   if (efficiency >= 80) return '#22c55e'; // Green
   if (efficiency >= 60) return '#f59e0b'; // Yellow
   return '#ef4444'; // Red
-};
-
-// Component to set the map view
-const MapViewSetter = ({ center, zoom }: { center: [number, number]; zoom: number }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (map) {
-      map.setView(center, zoom);
-    }
-  }, [center, zoom, map]);
-  return null;
 };
 
 interface MoroccoMapProps {
@@ -288,10 +283,74 @@ const MoroccoMap = ({ height = "600px" }: MoroccoMapProps) => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([35.26, -5.0]);
   const [mapZoom, setMapZoom] = useState(8);
   const [isClient, setIsClient] = useState(false);
+  const [iconsLoaded, setIconsLoaded] = useState(false);
+  const [facilityIcons, setFacilityIcons] = useState<Record<string, any>>({});
   
   // Initialize leaflet icons and ensure they work in Next.js
   useEffect(() => {
     setIsClient(true);
+    
+    // Load and create icons
+    const loadIcons = async () => {
+      if (typeof window === 'undefined') return;
+      
+      try {
+        // Dynamically import Leaflet
+        const L = await import('leaflet');
+        
+        // Create icons for each facility type
+        const icons: Record<string, any> = {};
+        
+        icons.port = L.icon({
+          iconUrl: '/images/map/port-icon.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+        
+        icons.distribution = L.icon({
+          iconUrl: '/images/map/warehouse-icon.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+        
+        icons.warehouse = L.icon({
+          iconUrl: '/images/map/warehouse-icon.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+        
+        icons.logistics = L.icon({
+          iconUrl: '/images/map/factory-icon.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+        
+        icons.depot = L.icon({
+          iconUrl: '/images/map/store-icon.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+        
+        icons['free-zone'] = L.icon({
+          iconUrl: '/images/map/factory-icon.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        });
+        
+        setFacilityIcons(icons);
+        setIconsLoaded(true);
+      } catch (error) {
+        console.error('Error loading Leaflet icons:', error);
+      }
+    };
+    
+    loadIcons();
   }, []);
   
   const handleFacilityClick = (facility: Facility) => {
@@ -324,12 +383,12 @@ const MoroccoMap = ({ height = "600px" }: MoroccoMapProps) => {
   return (
     <div className="relative rounded-lg overflow-hidden" style={{ height }}>
       <MapContainer 
-        center={mapCenter} 
+        center={mapCenter}
         zoom={mapZoom} 
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
       >
-        <MapViewSetter center={mapCenter} zoom={mapZoom} />
+        <MapControllerComponent center={mapCenter} zoom={mapZoom} />
         
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -337,23 +396,14 @@ const MoroccoMap = ({ height = "600px" }: MoroccoMapProps) => {
         />
         
         {/* Facilities */}
-        {FACILITIES.map(facility => {
-          const isSelected = selectedFacility && selectedFacility.id === facility.id;
-          let icon;
-          
-          // Only create icon on client-side
-          if (typeof window !== 'undefined' && L) {
-            icon = createIcon(
-              `/images/map/${facility.type}-icon.png`, 
-              isSelected ? [40, 40] : [32, 32]
-            );
-          }
+        {iconsLoaded && FACILITIES.map(facility => {
+          const facilityIcon = facilityIcons[facility.type];
           
           return (
             <Marker 
               key={facility.id}
               position={facility.position}
-              icon={icon || undefined}
+              icon={facilityIcon}
               eventHandlers={{
                 click: () => handleFacilityClick(facility)
               }}
