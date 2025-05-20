@@ -1,20 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
+  output: 'export', // Static HTML export for better compatibility with Vercel
+  images: {
+    unoptimized: true, // Required for static export
+    domains: [],
+  },
+  experimental: {
+    externalDir: true,
   },
   typescript: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has type errors.
+    // Disable TypeScript errors during build for now to allow deployment
     ignoreBuildErrors: true,
   },
-  // This will enable Image Optimization with the default provider (sharp)
-  images: {
-    domains: ['localhost'],
-  }
+  eslint: {
+    // Disable ESLint errors during build for now to allow deployment
+    ignoreDuringBuilds: true,
+  },
+  env: {
+    // Add any environment variables that should be available at build time
+  },
 };
 
 module.exports = nextConfig; 
