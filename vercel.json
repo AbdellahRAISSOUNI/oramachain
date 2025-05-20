@@ -1,9 +1,4 @@
 {
   "version": 2,
-  "buildCommand": null,
-  "framework": "nextjs",
-  "github": {
-    "enabled": true,
-    "silent": true
-  }
+  "framework": "nextjs"
 } 

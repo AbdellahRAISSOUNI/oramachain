@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export', // Static HTML export for better compatibility with Vercel
+  output: 'standalone',
   images: {
-    unoptimized: true, // Required for static export
-    domains: [],
+    domains: ['localhost'],
   },
   experimental: {
     externalDir: true,
