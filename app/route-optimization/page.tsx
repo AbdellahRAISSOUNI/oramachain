@@ -20,17 +20,20 @@ export default function RouteOptimizationPage() {
     };
   }, []);
 
-  // Listen for the optimization completed event
+  // Listen for the optimization completed event - client-side only
   useEffect(() => {
-    const handleOptimizationCompleted = () => {
-      setIsOptimized(true);
-    };
+    // Check if window is defined (client-side only)
+    if (typeof window !== 'undefined') {
+      const handleOptimizationCompleted = () => {
+        setIsOptimized(true);
+      };
 
-    window.addEventListener('optimization-completed', handleOptimizationCompleted);
-    
-    return () => {
-      window.removeEventListener('optimization-completed', handleOptimizationCompleted);
-    };
+      window.addEventListener('optimization-completed', handleOptimizationCompleted);
+      
+      return () => {
+        window.removeEventListener('optimization-completed', handleOptimizationCompleted);
+      };
+    }
   }, []);
   
   if (isLoading) {

@@ -1,25 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function Login() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Mark component as mounted after initial render
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset any previous errors
+    setError('');
     setIsLoading(true);
     
-    // Simulate authentication
-    setTimeout(() => {
+    // Validate input
+    if (!email || !password) {
+      setError('Please enter both email and password');
       setIsLoading(false);
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
-    }, 1500);
+      return;
+    }
+    
+    // Simulate authentication
+    try {
+      setTimeout(() => {
+        // Only navigate if component is still mounted
+        if (isMounted) {
+          setIsLoading(false);
+          // Redirect to dashboard using Next.js router
+          router.push('/dashboard');
+        }
+      }, 1500);
+    } catch (err) {
+      setIsLoading(false);
+      setError('An error occurred during login. Please try again.');
+      console.error('Login error:', err);
+    }
+  };
+  
+  const handleNavigation = (e: React.MouseEvent, path: string) => {
+    e.preventDefault();
+    if (isMounted) {
+      router.push(path);
+    }
   };
   
   return (
@@ -57,6 +93,13 @@ export default function Login() {
               }
             }
           `}</style>
+          
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-[#111827] mb-1">
@@ -105,7 +148,11 @@ export default function Login() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-[#683cec] hover:text-[#5429e0]">
+                <a 
+                  href="#" 
+                  className="font-medium text-[#683cec] hover:text-[#5429e0]" 
+                  onClick={(e) => handleNavigation(e, '/forgot-password')}
+                >
                   Forgot your password?
                 </a>
               </div>
@@ -132,7 +179,11 @@ export default function Login() {
         <div className="mt-6 text-center">
           <p className="text-sm text-[#556068]">
             Don't have an account?{' '}
-            <a href="#" className="font-medium text-[#683cec] hover:text-[#5429e0]">
+            <a 
+              href="#" 
+              className="font-medium text-[#683cec] hover:text-[#5429e0]" 
+              onClick={(e) => handleNavigation(e, '/signup')}
+            >
               Request access
             </a>
           </p>

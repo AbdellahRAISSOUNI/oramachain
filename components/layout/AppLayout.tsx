@@ -15,21 +15,26 @@ export default function AppLayout({ children }: AppLayoutProps) {
   
   useEffect(() => {
     const checkIsMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
+      if (typeof window !== 'undefined') {
+        const mobile = window.innerWidth < 768;
+        setIsMobile(mobile);
+        if (mobile) {
+          setSidebarOpen(false);
+        } else {
+          setSidebarOpen(true);
+        }
       }
     };
     
     checkIsMobile();
-    window.addEventListener('resize', checkIsMobile);
     
-    return () => {
-      window.removeEventListener('resize', checkIsMobile);
-    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkIsMobile);
+      
+      return () => {
+        window.removeEventListener('resize', checkIsMobile);
+      };
+    }
   }, []);
 
   // Toggle sidebar

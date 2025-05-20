@@ -1,50 +1,72 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvent, Circle } from 'react-leaflet';
-import L from 'leaflet';
+import dynamic from 'next/dynamic';
 import 'leaflet/dist/leaflet.css';
 
-// Fix for the Leaflet default icon issue in Next.js
-const DefaultIcon = L.icon({
-  iconUrl: '/images/map/marker-icon.png',
-  shadowUrl: '/images/map/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+// Dynamically import leaflet with no SSR
+const L = dynamic(() => import('leaflet').then(mod => mod.default), {
+  ssr: false
 });
 
-const WarehouseIcon = L.icon({
-  iconUrl: '/images/map/warehouse-icon.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
-});
+// Dynamically import react-leaflet components with no SSR
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
 
-const factoryIcon = L.icon({
-  iconUrl: '/images/map/factory-icon.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
-});
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
 
-const portIcon = L.icon({
-  iconUrl: '/images/map/port-icon.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
-});
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
 
-const storeIcon = L.icon({
-  iconUrl: '/images/map/store-icon.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -32]
-});
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+);
 
-// Ensure Leaflet uses our custom icons
-L.Marker.prototype.options.icon = DefaultIcon;
+const Polyline = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Polyline),
+  { ssr: false }
+);
+
+const Circle = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Circle),
+  { ssr: false }
+);
+
+// Define icon object creator function that only runs client-side
+const createIcon = (iconUrl: string, iconSize: [number, number] = [25, 41], iconAnchor: [number, number] = [12, 41], popupAnchor: [number, number] = [1, -34], shadowSize: [number, number] = [41, 41]) => {
+  if (typeof window === 'undefined') return null;
+  
+  return {
+    iconUrl,
+    shadowUrl: '/images/map/marker-shadow.png',
+    iconSize,
+    iconAnchor,
+    popupAnchor,
+    shadowSize
+  };
+};
+
+// Setup icons with default values - will only be initialized on client
+const DefaultIconProps = createIcon('/images/map/marker-icon.png');
+const WarehouseIconProps = createIcon('/images/map/warehouse-icon.png', [32, 32], [16, 32], [0, -32]);
+const FactoryIconProps = createIcon('/images/map/factory-icon.png', [32, 32], [16, 32], [0, -32]);
+const PortIconProps = createIcon('/images/map/port-icon.png', [32, 32], [16, 32], [0, -32]);
+const StoreIconProps = createIcon('/images/map/store-icon.png', [32, 32], [16, 32], [0, -32]);
+
+// Icons will be initialized on the client-side only
+let DefaultIcon: any = null;
+let WarehouseIcon: any = null;
+let factoryIcon: any = null;
+let portIcon: any = null;
+let storeIcon: any = null;
 
 interface Facility {
   id: string;
@@ -75,8 +97,27 @@ export default function RouteComparison({ isOptimized }: RouteComparisonProps) {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [currentRoutes, setCurrentRoutes] = useState<Route[]>([]);
   const [optimizedRoutes, setOptimizedRoutes] = useState<Route[]>([]);
+  const [isClient, setIsClient] = useState(false);
   
+  // Initialize the client-side only data
   useEffect(() => {
+    setIsClient(true);
+    
+    // Initialize Leaflet icons on client-side only
+    if (typeof window !== 'undefined' && L) {
+      // Create icons
+      DefaultIcon = DefaultIconProps ? L.icon(DefaultIconProps) : null;
+      WarehouseIcon = WarehouseIconProps ? L.icon(WarehouseIconProps) : null;
+      factoryIcon = FactoryIconProps ? L.icon(FactoryIconProps) : null;
+      portIcon = PortIconProps ? L.icon(PortIconProps) : null;
+      storeIcon = StoreIconProps ? L.icon(StoreIconProps) : null;
+      
+      // Set default icon
+      if (DefaultIcon && L.Marker && L.Marker.prototype) {
+        L.Marker.prototype.options.icon = DefaultIcon;
+      }
+    }
+    
     // Sample facilities data
     const sampleFacilities: Facility[] = [
       {
@@ -318,6 +359,8 @@ export default function RouteComparison({ isOptimized }: RouteComparisonProps) {
   }, []);
   
   const getFacilityIcon = (type: string) => {
+    if (typeof window === 'undefined') return null;
+    
     switch (type) {
       case 'warehouse':
         return WarehouseIcon;
@@ -363,6 +406,18 @@ export default function RouteComparison({ isOptimized }: RouteComparisonProps) {
     emissions: ((currentStats.totalEmissions - optimizedStats.totalEmissions) / currentStats.totalEmissions * 100).toFixed(1),
     efficiency: (optimizedStats.avgEfficiency - currentStats.avgEfficiency).toFixed(1)
   };
+  
+  if (!isClient) {
+    // Return a loading state or placeholder when server-side rendering
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-xl font-display text-[#111827] mb-4">Route Comparison</h2>
+        <div className="h-[400px] flex items-center justify-center bg-gray-50 rounded-lg">
+          <p>Loading map...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

@@ -52,7 +52,12 @@ export default function OptimizationCenter() {
     });
 
     // Dispatch an event to notify that optimization is complete
-    window.dispatchEvent(new Event('optimization-completed'));
+    // Only run this code on the client side
+    if (typeof window !== 'undefined') {
+      // Create a custom event that will be safer cross-browser
+      const optimizationEvent = new CustomEvent('optimization-completed');
+      window.dispatchEvent(optimizationEvent);
+    }
   };
 
   return (
