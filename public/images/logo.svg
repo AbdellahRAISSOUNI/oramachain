@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+  <!-- Base gradient -->
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#32C8CD" />
+      <stop offset="100%" stop-color="#9747FF" />
+    </linearGradient>
+  </defs>
+  
+  <!-- O shape with gradient -->
+  <path d="M18 2C9.164 2 2 9.164 2 18s7.164 16 16 16 16-7.164 16-16S26.836 2 18 2zm0 28c-6.617 0-12-5.383-12-12S11.383 6 18 6s12 5.383 12 12-5.383 12-12 12z" fill="url(#logoGradient)" />
+  
+  <!-- Inner shapes resembling blockchain links -->
+  <circle cx="18" cy="18" r="3" fill="#2A3FFB" />
+  <circle cx="25" cy="18" r="2" fill="#9747FF" />
+  <circle cx="11" cy="18" r="2" fill="#32C8CD" />
+  
+  <!-- Connecting lines -->
+  <path d="M20.5 17l2.5-0.5M15.5 17L13 16.5" stroke="#2A3FFB" stroke-width="1.2" stroke-linecap="round" />
+</svg> 

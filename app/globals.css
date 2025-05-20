@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  --background: #FFFFFF;
+  --foreground: #1A1A2E;
+  --accent1: #32C8CD;
+  --accent2: #683cec;
+  --accent3: #9747FF;
+  --secondary: #F8F9FB;
+  --shadow: rgba(0,0,0,0.05);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+/* Remove dark mode for premium white theme */
+/* @media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+} */
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-general-sans), sans-serif;
+  overflow-x: hidden;
+}
+
+/* Font classes */
+.font-display {
+  font-family: var(--font-general-sans), sans-serif;
+  font-weight: 700;
+}
+
+.font-sans {
+  font-family: var(--font-general-sans), sans-serif;
+}
+
+.font-mono {
+  font-family: monospace;
+}
+
+/* Smooth scrolling for the entire page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent1);
+  border-radius: 3px;
+}
+
+/* Gradient text utility class */
+.gradient-text {
+  background: linear-gradient(90deg, var(--accent2), var(--accent3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Blue gradient text for AI-Native */
+.text-gradient-blue {
+  background: linear-gradient(90deg, #683cec 0%, #4051b5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient background */
+.gradient-bg {
+  background: linear-gradient(135deg, var(--accent2), var(--accent3));
+}
+
+/* 3D transform styles */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective {
+  perspective: 1500px;
+}
+
+/* Night mode dashboard glow */
+.dashboard-glow {
+  box-shadow: 0 0 30px rgba(42, 63, 251, 0.1), 0 0 80px rgba(151, 71, 255, 0.05);
+}
