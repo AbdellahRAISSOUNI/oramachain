@@ -1,5 +1,9 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
   "builds": [
     {
       "src": "package.json",
@@ -13,6 +17,7 @@
     }
   ],
   "github": {
-    "silent": true
+    "silent": true,
+    "autoAlias": true
   }
 } 
