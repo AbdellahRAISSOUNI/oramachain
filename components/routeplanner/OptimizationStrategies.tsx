@@ -155,7 +155,7 @@ export default function OptimizationStrategies({
         description: 'Properly inflated tires reduce rolling resistance, improving fuel efficiency and reducing emissions by approximately 3%.',
         tips: [
           'Check tire pressure monthly',
-          'Maintain pressure at the manufacturer's recommended level',
+          'Maintain pressure at the manufacturer\'s recommended level',
           'Consider low rolling resistance tires when replacing',
           'Check alignment and balance regularly'
         ]
