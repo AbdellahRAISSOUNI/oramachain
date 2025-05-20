@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install && npm install critters",
+  "installCommand": "npm install",
   "framework": "nextjs",
   "functions": {
     "api/**/*": {

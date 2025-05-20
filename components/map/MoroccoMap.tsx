@@ -285,6 +285,7 @@ const MoroccoMap = ({ height = "600px" }: MoroccoMapProps) => {
   const [isClient, setIsClient] = useState(false);
   const [iconsLoaded, setIconsLoaded] = useState(false);
   const [facilityIcons, setFacilityIcons] = useState<Record<string, any>>({});
+  const [hasError, setHasError] = useState(false);
   
   // Initialize leaflet icons and ensure they work in Next.js
   useEffect(() => {
@@ -301,52 +302,29 @@ const MoroccoMap = ({ height = "600px" }: MoroccoMapProps) => {
         // Create icons for each facility type
         const icons: Record<string, any> = {};
         
-        icons.port = L.icon({
-          iconUrl: '/images/map/port-icon.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -32]
+        // Use a default icon for all types to avoid 404 errors
+        const defaultIcon = L.icon({
+          iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowSize: [41, 41]
         });
         
-        icons.distribution = L.icon({
-          iconUrl: '/images/map/warehouse-icon.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -32]
-        });
-        
-        icons.warehouse = L.icon({
-          iconUrl: '/images/map/warehouse-icon.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -32]
-        });
-        
-        icons.logistics = L.icon({
-          iconUrl: '/images/map/factory-icon.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -32]
-        });
-        
-        icons.depot = L.icon({
-          iconUrl: '/images/map/store-icon.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -32]
-        });
-        
-        icons['free-zone'] = L.icon({
-          iconUrl: '/images/map/factory-icon.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -32]
-        });
+        // Assign the default icon to all facility types
+        icons.port = defaultIcon;
+        icons.distribution = defaultIcon;
+        icons.warehouse = defaultIcon;
+        icons.logistics = defaultIcon;
+        icons.depot = defaultIcon;
+        icons['free-zone'] = defaultIcon;
         
         setFacilityIcons(icons);
         setIconsLoaded(true);
       } catch (error) {
         console.error('Error loading Leaflet icons:', error);
+        setHasError(true);
       }
     };
     
@@ -365,8 +343,8 @@ const MoroccoMap = ({ height = "600px" }: MoroccoMapProps) => {
     setMapZoom(8);
   };
   
-  // If server-side rendering, show a placeholder
-  if (!isClient) {
+  // If server-side rendering or error, show a placeholder
+  if (!isClient || hasError) {
     return (
       <div 
         className="relative bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center"
@@ -374,7 +352,7 @@ const MoroccoMap = ({ height = "600px" }: MoroccoMapProps) => {
       >
         <div className="text-center p-4">
           <div className="w-12 h-12 border-t-4 border-[#683cec] rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-[#556068]">Loading map...</p>
+          <p className="text-[#556068]">{hasError ? "Error loading map" : "Loading map..."}</p>
         </div>
       </div>
     );

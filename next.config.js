@@ -5,7 +5,7 @@ const nextConfig = {
   output: 'standalone',
   images: {
     domains: ['localhost'],
-    unoptimized: process.env.NODE_ENV === 'development',
+    unoptimized: true,
   },
   experimental: {
     // Removing optimizeCss to fix Vercel deployment
