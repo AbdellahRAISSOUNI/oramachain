@@ -8,8 +8,7 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === 'development',
   },
   experimental: {
-    // Optimize bundle splitting
-    optimizeCss: true,
+    // Removing optimizeCss to fix Vercel deployment
   },
   typescript: {
     // Disable TypeScript errors during build for now to allow deployment
