@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function Login() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -17,8 +19,8 @@ export default function Login() {
     // Simulate authentication
     setTimeout(() => {
       setIsLoading(false);
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
+      // Redirect to dashboard using Next.js router
+      router.push('/dashboard');
     }, 1500);
   };
   
