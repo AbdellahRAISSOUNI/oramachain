@@ -1,9 +1,40 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvent, Circle } from 'react-leaflet';
+import dynamic from 'next/dynamic';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Dynamically import react-leaflet components with no SSR
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+);
+
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+);
+
+const Polyline = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Polyline),
+  { ssr: false }
+);
+
+const Circle = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Circle),
+  { ssr: false }
+);
 
 // Fix for the Leaflet default icon issue in Next.js
 const DefaultIcon = L.icon({
@@ -43,8 +74,10 @@ const storeIcon = L.icon({
   popupAnchor: [0, -32]
 });
 
-// Ensure Leaflet uses our custom icons
-L.Marker.prototype.options.icon = DefaultIcon;
+// Ensure Leaflet uses our custom icons - only in browser context
+if (typeof window !== 'undefined') {
+  L.Marker.prototype.options.icon = DefaultIcon;
+}
 
 interface Facility {
   id: string;
