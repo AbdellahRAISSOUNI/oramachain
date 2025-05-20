@@ -102,4 +102,15 @@
   .dashboard-glow {
     box-shadow: 0 0 30px rgba(42, 63, 251, 0.1), 0 0 80px rgba(151, 71, 255, 0.05);
   }
+  
+  /* Animated dashed line for map route animations */
+  @keyframes dash {
+    to {
+      stroke-dashoffset: 24;
+    }
+  }
+  
+  .animate-dash {
+    animation: dash 15s linear infinite;
+  }
 }
