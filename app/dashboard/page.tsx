@@ -12,6 +12,7 @@ const MoroccoMap = dynamic(
 
 export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [unreadNotifications, setUnreadNotifications] = useState(4);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -61,19 +62,28 @@ export default function Dashboard() {
   ];
   
   useEffect(() => {
+    // Mark component as mounted
+    setIsMounted(true);
+    
     // Simulate loading dashboard data
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1500);
     
-    // Update time every second
-    const timeInterval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+    // Update time every second - only in client
+    let timeInterval: NodeJS.Timeout | null = null;
+    if (typeof window !== 'undefined') {
+      timeInterval = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 1000);
+    }
     
     return () => {
       clearTimeout(timer);
-      clearInterval(timeInterval);
+      if (timeInterval) {
+        clearInterval(timeInterval);
+      }
+      setIsMounted(false);
     };
   }, []);
   
@@ -95,7 +105,8 @@ export default function Dashboard() {
     });
   };
   
-  if (isLoading) {
+  // Show loading state while initializing
+  if (!isMounted || isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white">
         <div className="flex flex-col items-center">
